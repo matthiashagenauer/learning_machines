@@ -47,7 +47,7 @@ def run_classic_q_learning(rob: IRobobo, iterations=2000, alpha=0.1, gamma=0.95,
             teleport(rob, reset_position, reset_orientation)
         if i % int(iterations / 20) == 0:
             teleport(rob, reset_position, reset_orientation)
-            validation_reward.appen(validate(rob, classic=True, q_table=q_table))
+            validation_reward.append(validate(rob, classic=True, q_table=q_table))
             teleport(rob, reset_position, reset_orientation)
 
         state = obs_to_key(sensor_to_vec(get_sensor_data(rob)))
