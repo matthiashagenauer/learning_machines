@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import random
-#import torch
+import torch
 #from torch import nn
 #import torch.nn.functional as F
 #from torch import optim
@@ -39,9 +39,34 @@ def tqdm(*args, **kwargs):
 
 
 
-LOWER_THRESHOLD = 30
-HIGHER_THRESHOLD = 80
+LOWER_THRESHOLD = 50
+HIGHER_THRESHOLD = 85
 THRESHOLD = 40
+
+def obs_to_key(obs):
+        return tuple(obs)  # Convert array to tuple for dict key
+
+def validate(rob:IRobobo, classic=False, q_table=None, q_network=None):
+    total_reward = 0
+    if classic:
+        for i in range(100):
+            state = obs_to_key(sensor_to_vec(get_sensor_data(rob)))
+            action = np.argmax(q_table[state])
+            _, reward = take_action(rob, action)
+            total_reward += reward
+    else:
+        for i in range(100):
+            state = np.array(sensor_to_vec(get_sensor_data(rob)))
+            state = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+            with torch.no_grad():
+                q_values = q_network(state) 
+                action = torch.argmax(q_values).item()  
+            state, reward = take_action(rob, action)
+            total_reward += reward
+            
+    return total_reward
+
+
 
 
 def set_thresholds(lower, higher):
@@ -90,35 +115,35 @@ def get_epsilon(iters_left, total_iters=1000, epsilon_start=1.0, epsilon_final=0
 def take_action(rob, action):
     # straight
     if action == 0:
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # turn around/backwards / full 180
     elif action == 1:
         rob.move_blocking(20, -20, 2375)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # left or right  / 90
     elif action == 2:
         rob.move_blocking(20, -20, 1187)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # left or  right / 90
     elif action == 3:
         rob.move_blocking(-20, 20, 1187)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # slight left or right / 45
     elif action == 4:
         rob.move_blocking(20, -20, 593)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # slight left or right / 45
     elif action == 5:
         rob.move_blocking(-20, 20, 593)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # bit further left or right / 135
     elif action == 6:
         rob.move_blocking(20, -20, 1780)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     # bit further left or right / 135
     elif action == 7:
         rob.move_blocking(20, -20, 1780)
-        rob.move_blocking(100, 100, 2000)
+        rob.move_blocking(100, 100, 250)
     next_state = sensor_to_vec(get_sensor_data(rob))
     reward = compute_reward(next_state=next_state, action=action)
 
@@ -133,14 +158,14 @@ def compute_reward(next_state, action, prev_state = None, ):
 
     # Encourage fewer "danger" readings
     danger_penalty = np.sum(next_state == 2) * -5
-    warning_penalty = np.sum(next_state == 1) * -2
-    clear_bonus = np.sum(next_state == 0) * 1
+    warning_penalty = np.sum(next_state == 1) * -1
+    clear_bonus = np.sum(next_state == 0) * 0
 
     # Encourage going straight (actions 0 = forward, 2/3 = slight turns)
-    forward_bonus = 2 if action == 0 else 0
+    forward_bonus = 4 if action == 0 else 0
 
     # Penalty for spinning (actions 6 and 7 are large turns)
-    spin_penalty = -2 if action not in [0, 2, 3] else 0
+    spin_penalty = -10 if action not in [0] else 0
 
     total_reward = danger_penalty + clear_bonus + forward_bonus + spin_penalty + warning_penalty
     return total_reward

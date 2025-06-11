@@ -26,7 +26,7 @@ from robobo_interface import (
 
 
 
-def run_classic_q_learning(rob: IRobobo, iterations=500, alpha=0.1, gamma=0.95, epsilon_start=1.0, epsilon_final=0.05):
+def run_classic_q_learning(rob: IRobobo, iterations=2000, alpha=0.1, gamma=0.95, epsilon_start=1.0, epsilon_final=0.05):
     """
     Classic Q-learning using a tabular Q-table.
     Assumes the observation space (sensor_to_vec) can be encoded as a string or tuple key.
@@ -38,15 +38,18 @@ def run_classic_q_learning(rob: IRobobo, iterations=500, alpha=0.1, gamma=0.95, 
 
     q_table = defaultdict(lambda: np.zeros(8))  # 8 possible actions
 
-    def obs_to_key(obs):
-        return tuple(obs)  # Convert array to tuple for dict key
-    
+    validation_reward = []
     reset_position = rob.get_position()
     reset_orientation = rob.get_orientation()
 
     for i in tqdm(range(iterations), desc="Classic Q-Learning"):
         if i % 100 == 0:
             teleport(rob, reset_position, reset_orientation)
+        if i % int(iterations / 20) == 0:
+            teleport(rob, reset_position, reset_orientation)
+            validation_reward.appen(validate(rob, classic=True, q_table=q_table))
+            teleport(rob, reset_position, reset_orientation)
+
         state = obs_to_key(sensor_to_vec(get_sensor_data(rob)))
 
         epsilon = get_epsilon(iters_left=iterations - i, total_iters=iterations,
@@ -71,6 +74,11 @@ def run_classic_q_learning(rob: IRobobo, iterations=500, alpha=0.1, gamma=0.95, 
     with open('/root/results/classic_q_table.pkl', 'wb') as f:
         pickle.dump(dict(q_table), f)
     print("Classic Q-table saved to classic_q_table.pkl")
+
+    # Save validation rewards
+    with open('/root/results/validation_rewards.pkl', 'wb') as f:
+        pickle.dump(validation_reward, f)
+    print("Validation rewards saved to validation_rewards.pkl")
 
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()
