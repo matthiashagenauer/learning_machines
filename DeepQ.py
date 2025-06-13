@@ -31,6 +31,9 @@ from robobo_interface import (
 
 
 class QNetwork(nn.Module):
+    """
+    Very simple NN
+    """
     
     def __init__(self, num_hidden=128):
         nn.Module.__init__(self)

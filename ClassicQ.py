@@ -74,7 +74,7 @@ def run_classic_q_learning(rob: IRobobo, iterations=20000, alpha=0.1, gamma=0.95
         pickle.dump(dict(q_table), f)
     print("Classic Q-table saved to classic_q_table.pkl")
 
-    # Save validation rewards
+    # Save validation rewards array
     with open('/root/results/validation_rewards.pkl', 'wb') as f:
         pickle.dump(validation_reward, f)
     print("Validation rewards saved to validation_rewards.pkl")

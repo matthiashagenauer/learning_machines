@@ -25,6 +25,7 @@ from robobo_interface import (
 )
 
 """
+# if we want to avoid pytorch
 def run_training(rob):
     pass
 def apply_policy(rob):
