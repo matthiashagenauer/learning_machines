@@ -39,8 +39,8 @@ def tqdm(*args, **kwargs):
 
 
 
-LOWER_THRESHOLD = 50
-HIGHER_THRESHOLD = 85
+LOWER_THRESHOLD = 30 # for deepQ
+HIGHER_THRESHOLD = 40 # for deepQ
 THRESHOLD = 40
 
 def obs_to_key(obs):
@@ -113,37 +113,38 @@ def get_epsilon(iters_left, total_iters=1000, epsilon_start=1.0, epsilon_final=0
 
 
 def take_action(rob, action):
+    move_duration = 200
     # straight
     if action == 0:
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # turn around/backwards / full 180
     elif action == 1:
         rob.move_blocking(20, -20, 2375)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # left or right  / 90
     elif action == 2:
         rob.move_blocking(20, -20, 1187)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # left or  right / 90
     elif action == 3:
         rob.move_blocking(-20, 20, 1187)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # slight left or right / 45
     elif action == 4:
         rob.move_blocking(20, -20, 593)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # slight left or right / 45
     elif action == 5:
         rob.move_blocking(-20, 20, 593)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # bit further left or right / 135
     elif action == 6:
         rob.move_blocking(20, -20, 1780)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     # bit further left or right / 135
     elif action == 7:
         rob.move_blocking(20, -20, 1780)
-        rob.move_blocking(100, 100, 250)
+        rob.move_blocking(100, 100, move_duration)
     next_state = sensor_to_vec(get_sensor_data(rob))
     reward = compute_reward(next_state=next_state, action=action)
 
@@ -157,12 +158,12 @@ def compute_reward(next_state, action, prev_state = None, ):
     """
 
     # Encourage fewer "danger" readings
-    danger_penalty = np.sum(next_state == 2) * -5
-    warning_penalty = np.sum(next_state == 1) * -1
+    danger_penalty = np.sum(next_state == 2) * -30
+    warning_penalty = np.sum(next_state == 1) * -3
     clear_bonus = np.sum(next_state == 0) * 0
 
     # Encourage going straight (actions 0 = forward, 2/3 = slight turns)
-    forward_bonus = 4 if action == 0 else 0
+    forward_bonus = 5 if action == 0 else 0
 
     # Penalty for spinning (actions 6 and 7 are large turns)
     spin_penalty = -10 if action not in [0] else 0

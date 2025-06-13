@@ -203,21 +203,21 @@ def run_episodes(rob, train, Q, policy, memory, batch_size = 8, discount_factor=
     optimizer = optim.Adam(Q.parameters(), learn_rate)
     
     #global_steps = 0  # Count the steps (do not reset at episode start, to compute epsilon)
+    state = sensor_to_vec(get_sensor_data(rob))
+    steps = 0
+    
     validation_reward = []
     reset_position = rob.get_position()
     reset_orientation = rob.get_orientation()
 
-    steps = 0
     for i in _tqdm(range(iterations)):
     #while True:
         if i % 100 == 0:
             teleport(rob, reset_position, reset_orientation)
         if i % int(iterations / 20) == 0:
             teleport(rob, reset_position, reset_orientation)
-            validation_reward.append(validate(rob, classic=False, q_network=Q))
+            validation_reward.append(validate(rob, classic=True, q_network=Q))
             teleport(rob, reset_position, reset_orientation)
-
-        state = sensor_to_vec(get_sensor_data(rob))
         #epsilon = get_epsilon(global_steps)
         epsilon = get_epsilon(iters_left=iterations - i, total_iters=iterations)
         policy.set_epsilon(epsilon) 
@@ -252,7 +252,7 @@ def run_episodes(rob, train, Q, policy, memory, batch_size = 8, discount_factor=
     with open('/root/results/validation_rewards.pkl', 'wb') as f:
         pickle.dump(validation_reward, f)
     print("Validation rewards saved to validation_rewards.pkl")
-    
+
     writer.close()  # Close the TensorBoard writer
 
 
@@ -260,8 +260,8 @@ def run_training(rob: IRobobo):
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()
 
-    memory_size = 400
-    iterations = 1500
+    memory_size = 200
+    iterations = 20000
     learn_rate = 1e-4
     batch_size = 64
     
