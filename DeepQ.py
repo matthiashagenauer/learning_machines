@@ -13,7 +13,7 @@ from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
 from tqdm import tqdm as _tqdm
-import pickle # Import the pickle module
+import pickle 
 
 
 
@@ -39,11 +39,10 @@ class QNetwork(nn.Module):
 
     def forward(self, x):
         
-        # YOUR CODE HERE
         x = torch.relu(self.l1(x))  
         x = self.l2(x)  
         return x
-        #raise NotImplementedError
+  
 
 class ReplayMemory:
     
@@ -52,15 +51,13 @@ class ReplayMemory:
         self.memory = []
 
     def push(self, transition):
-        # YOUR CODE HERE
-        #raise NotImplementedError
+      
         if len(self.memory) >= self.capacity:
             self.memory.pop(0) 
         self.memory.append(transition)
 
     def sample(self, batch_size):
-        # YOUR CODE HERE
-        #raise NotImplementedError
+     
         return random.sample(self.memory, batch_size)
 
     def __len__(self):
@@ -85,8 +82,6 @@ class EpsilonGreedyPolicy(object):
             An action (int).
         """
         
-        # YOUR CODE HERE
-        #raise NotImplementedError
         if random.random() < self.epsilon:
             return random.randint(0, 7) 
         
@@ -111,9 +106,6 @@ def compute_q_vals(Q, states, actions):
     Returns:
         A torch tensor filled with Q values. Shape: batch_size x 1.
     """
-    
-    # YOUR CODE HERE
-    #raise NotImplementedError
 
     q_values = Q(states) 
     return q_values.gather(1, actions)  
@@ -132,9 +124,6 @@ def compute_targets(Q, rewards, next_states, discount_factor):
     Returns:
         A torch tensor filled with target values. Shape: batch_size x 1.
     """
-    
-    # YOUR CODE HERE
-    #raise NotImplementedError
 
     # removed
 
@@ -186,15 +175,13 @@ def train(Q, memory, optimizer, batch_size, discount_factor):
     with torch.no_grad():  # Don't compute gradient info for the target (semi-gradient)
         target = compute_targets(Q, reward, next_state, discount_factor)
     
-    # loss is measured from error between current and newly expected Q values
     loss = F.smooth_l1_loss(q_val, target)
 
-    # backpropagation of loss to Neural Network (PyTorch magic)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     
-    return loss.item()  # Returns a Python scalar, and releases history (similar to .detach())
+    return loss.item()  # Returns a Python scalar
 
 
 

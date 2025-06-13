@@ -29,7 +29,6 @@ from robobo_interface import (
 def run_classic_q_learning(rob: IRobobo, iterations=20000, alpha=0.1, gamma=0.95, epsilon_start=1.0, epsilon_final=0.05):
     """
     Classic Q-learning using a tabular Q-table.
-    Assumes the observation space (sensor_to_vec) can be encoded as a string or tuple key.
     """
     from collections import defaultdict
 

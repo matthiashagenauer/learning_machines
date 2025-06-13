@@ -6,7 +6,7 @@ import numpy as np
 import random
 
 import pickle # Import the pickle module
-#from .DeepQ import *
+from .DeepQ import *
 from .ClassicQ import *
 from .utils import *
 
@@ -24,12 +24,13 @@ from robobo_interface import (
     HardwareRobobo,
 )
 
-
+"""
 def run_training(rob):
     pass
 def apply_policy(rob):
     pass
-
+"""
+    
 # Controller instance
 def controller(rob: IRobobo):
     while True:
