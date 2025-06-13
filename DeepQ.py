@@ -216,7 +216,7 @@ def run_episodes(rob, train, Q, policy, memory, batch_size = 8, discount_factor=
             teleport(rob, reset_position, reset_orientation)
         if i % int(iterations / 20) == 0:
             teleport(rob, reset_position, reset_orientation)
-            validation_reward.append(validate(rob, classic=True, q_network=Q))
+            validation_reward.append(validate(rob, classic=False, q_network=Q))
             teleport(rob, reset_position, reset_orientation)
         #epsilon = get_epsilon(global_steps)
         epsilon = get_epsilon(iters_left=iterations - i, total_iters=iterations)
