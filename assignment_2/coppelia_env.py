@@ -65,9 +65,11 @@ class Coppelia_env(gym.Env):
         :return: (np.array)
         """
         super().reset(seed=seed, options=options)
-        # Initialize the agent at the right of the grid
         if isinstance(self.rob, SimulationRobobo):
-            self.rob.set_position(self.reset_position, self.reset_orientation)
+            self.rob.stop_simulation()
+        self.rob.sleep(1)
+        if isinstance(self.rob, SimulationRobobo):
+            self.rob.play_simulation()
         #else:
         #    return np.array([0, 0, 0]).astype(np.float32), {} 
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
