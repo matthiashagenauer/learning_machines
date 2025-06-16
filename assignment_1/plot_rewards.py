@@ -30,6 +30,7 @@ def plot_rewards(rewards):
 if __name__ == "__main__":
     try:
         rewards = load_validation_rewards(VALIDATION_REWARDS_PATH)
+        rewards[0] = -8000
         plot_rewards(rewards)
     except Exception as e:
         print(f"❌ Error: {e}")
