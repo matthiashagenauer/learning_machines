@@ -67,7 +67,6 @@ class Coppelia_env(gym.Env):
         super().reset(seed=seed, options=options)
         if isinstance(self.rob, SimulationRobobo):
             self.rob.stop_simulation()
-        self.rob.sleep(1)
         if isinstance(self.rob, SimulationRobobo):
             self.rob.play_simulation()
         #else:
