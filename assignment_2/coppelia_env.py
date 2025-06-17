@@ -88,16 +88,16 @@ class Coppelia_env(gym.Env):
         TURN_360 = 4750
         if action < 0:
             turn_time = (TURN_360 / 360) * (-1) * action
-            self.rob.move_blocking(-20, 20, turn_time) # for continuous action space turn
+            self.rob.move_blocking(-20, 20, int(turn_time)) # for continuous action space turn
         else:
             turn_time = (TURN_360 / 360) * action
-            self.rob.move_blocking(20, -20, turn_time) # for continuous action space turn
+            self.rob.move_blocking(20, -20, int(turn_time)) # for continuous action space turn
         self.rob.move_blocking(100, 100, 250) # then move 
         
         next_state = get_state(self.rob)
 
         # never terminate
-        terminated = False
+        terminated = self.rob.get_nr_food_collected() >= 7
         truncated = False  # we do not limit the number of steps here
 
         # Null reward everywhere except when reaching the goal (left of the grid)
