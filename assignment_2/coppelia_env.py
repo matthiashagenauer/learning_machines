@@ -29,7 +29,7 @@ class Coppelia_env(gym.Env):
     metadata = {"render_modes": ["console"]}
 
 
-    def __init__(self, rob: IRobobo, grid_size=10, render_mode="console"):
+    def __init__(self, rob: IRobobo, grid_size=10, render_mode="console", deepQ = False):
         super(Coppelia_env, self).__init__()
         """
         self.render_mode = render_mode
@@ -54,7 +54,9 @@ class Coppelia_env(gym.Env):
         #self.rob.set_phone_pan()
         #self.rob.set_phone_tilt()
         
-        self.observation_space = spaces.Box(low=0, high=2, shape=(4,), dtype=np.int8)
+        self.observation_space = spaces.Box(low=0, high=2, shape=(4,), dtype=np.int8)   
+        self.deepQ = deepQ
+
         self.action_space = spaces.Box(low=-180, high=180, shape=(), dtype=np.float32)
         if isinstance(self.rob, SimulationRobobo):
             self.reset_position = self.rob.get_position()
@@ -87,6 +89,8 @@ class Coppelia_env(gym.Env):
                 f"Received invalid action={action} which is not part of the action space"
             )
         """
+        if self.deepQ:
+            action = translate_action(action)
         TURN_360 = 4750
         if action < 0:
             turn_time = (TURN_360 / 360) * (-1) * action
@@ -98,7 +102,6 @@ class Coppelia_env(gym.Env):
         
         next_state = get_state(self.rob)
 
-        # never terminate
         terminated = self.rob.get_nr_food_collected() >= 7
         truncated = False  # we do not limit the number of steps here
 

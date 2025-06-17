@@ -1,5 +1,6 @@
 import cv2
 import os
+import time
 
 import numpy as np
 
@@ -25,6 +26,50 @@ from robobo_interface import (
 LOWER_THRESHOLD = 25 # for deepQ
 HIGHER_THRESHOLD = 35 # for deepQ
 #THRESHOLD = 40
+
+######################## BEGINING Deep Q stuff #########################
+
+def get_epsilon(it):
+    
+    # YOUR CODE HERE
+    #raise NotImplementedError
+    if it >= 1000:
+        epsilon =  0.05
+    else:
+        epsilon = 1.0 -(it/1000)*(1.0-0.05)
+    
+    return epsilon
+
+def translate_action(action_idx):
+
+    # straight
+    if action_idx == 0:
+        return 0
+    # turn around/backwards / full 180
+    elif action_idx == 1:
+        return 180
+    # left or right  / 90
+    elif action_idx == 2:
+        return 90
+    # left or  right / 90
+    elif action_idx == 3:
+        return -90
+    # slight left or right / 45
+    elif action_idx == 4:
+        return 45
+    # slight left or right / 45
+    elif action_idx == 5:
+        return -45
+    # bit further left or right / 135
+    elif action_idx == 6:
+        return 135
+    # bit further left or right / 135
+    elif action_idx == 7:
+        return -135
+
+######################## END Deep Q stuff #########################
+
+
 
 def teleport(rob, reset_pos, reset_orient):
     #reset_orient = Orientation(1.5239092710256086, 1.2178260440512918, 1.6365592454553204)
@@ -102,6 +147,11 @@ def detect_green_blocks(image: np.ndarray) -> List[Tuple[int, int, int, int]]:
     """
     # Convert BGR to HSV
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # save image - not needed - got some already
+    #save_dir = "/root/results/"
+    #timestamp = int(time.time())
+    #cv2.imwrite(f"{save_dir}/{timestamp}_raw.jpg", image)
     
     # Define green color range in HSV (adjust these values)
     lower_green = np.array([35, 50, 50])   # Lower bound for green
