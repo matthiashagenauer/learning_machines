@@ -51,6 +51,8 @@ class Coppelia_env(gym.Env):
         )
         """
         self.rob = rob
+        #self.rob.set_phone_pan()
+        #self.rob.set_phone_tilt()
         
         self.observation_space = spaces.Box(low=0, high=2, shape=(4,), dtype=np.int8)
         self.action_space = spaces.Box(low=-180, high=180, shape=(), dtype=np.float32)
@@ -125,7 +127,8 @@ class Coppelia_env(gym.Env):
         pass
 
     def close(self):
-        pass
+        if isinstance(self.rob, SimulationRobobo):
+            self.rob.stop_simulation()
 
 def coppelia_main(rob):
     if isinstance(rob, SimulationRobobo):
