@@ -133,6 +133,9 @@ class Coppelia_env(gym.Env):
         if isinstance(self.rob, SimulationRobobo):
             self.rob.stop_simulation()
 
+    def get_robot_state(self):
+        return get_state(self.rob)
+
 def coppelia_main(rob):
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()

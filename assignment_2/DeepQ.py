@@ -157,9 +157,10 @@ def train(Q, memory, optimizer, batch_size, discount_factor):
     state, action, reward, next_state, done = zip(*transitions)
     
     # convert to PyTorch and define types
-    state = torch.tensor(np.array(state), dtype=torch.float)
+    print(state)
+    state = torch.tensor(state, dtype=torch.float)
     action = torch.tensor(action, dtype=torch.int64)[:, None]
-    next_state = torch.tensor(np.array(next_state), dtype=torch.float)
+    next_state = torch.tensor(next_state, dtype=torch.float)
     reward = torch.tensor(reward, dtype=torch.float)[:, None]
     done = torch.tensor(done, dtype=torch.uint8)[:, None]  # Boolean
     
@@ -188,14 +189,16 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
     global_steps = 0  # Count the steps (do not reset at episode start, to compute epsilon)
     episode_durations = []  #
     for i in _tqdm(range(num_episodes)):
-        state = env.reset()
+        env.reset()
+        state = env.get_robot_state()
         
         steps = 0
         for i in _tqdm(range(steps_per_episode)):
             
             epsilon = get_epsilon(global_steps)
             policy.set_epsilon(epsilon) 
-            action = policy.sample_action(state) 
+            action = policy.sample_action(state)
+          
             next_state, reward, done, _, _ = env.step(action) 
             
             memory.push((state, action, reward, next_state, done))  
@@ -237,7 +240,7 @@ def run_training(rob: IRobobo):
     memory_size = 200
     num_episodes = 5
     learn_rate = 1e-4
-    batch_size = 16
+    batch_size = 64
     steps_per_episode = 400
     
     path = "/root/results/"
