@@ -157,10 +157,9 @@ def train(Q, memory, optimizer, batch_size, discount_factor):
     state, action, reward, next_state, done = zip(*transitions)
     
     # convert to PyTorch and define types
-    print(state)
-    state = torch.tensor(state, dtype=torch.float)
+    state = torch.tensor(np.array(state), dtype=torch.float)
     action = torch.tensor(action, dtype=torch.int64)[:, None]
-    next_state = torch.tensor(next_state, dtype=torch.float)
+    next_state = torch.tensor(np.array(next_state), dtype=torch.float)
     reward = torch.tensor(reward, dtype=torch.float)[:, None]
     done = torch.tensor(done, dtype=torch.uint8)[:, None]  # Boolean
     
@@ -188,14 +187,16 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
     
     global_steps = 0  # Count the steps (do not reset at episode start, to compute epsilon)
     episode_durations = []  #
-    for i in _tqdm(range(num_episodes)):
+    for episode in _tqdm(range(num_episodes)):
         env.reset()
         state = env.get_robot_state()
         
         steps = 0
-        for i in _tqdm(range(steps_per_episode)):
+        for step in _tqdm(range(steps_per_episode)):
+            #if food_collected > 0:
+            #    print(f"Food collected: {food_collected}")
             
-            epsilon = get_epsilon(global_steps)
+            epsilon = get_epsilon(total_iters=num_episodes * steps_per_episode, iters_left=num_episodes * steps_per_episode - global_steps)
             policy.set_epsilon(epsilon) 
             action = policy.sample_action(state)
           
@@ -205,11 +206,14 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
             
             loss = train(Q, memory, optimizer, batch_size, discount_factor)  
 
-            if loss is not None:
-                writer.add_scalar("Loss/step", loss, i)
+            food_collected = env.get_food_collected()
 
-            writer.add_scalar("Epsilon/step", epsilon, i)
-            writer.add_scalar("Reward/step", reward, i)
+            if loss is not None:
+                writer.add_scalar("Loss/step", loss, global_steps)
+
+            writer.add_scalar("Epsilon/step", epsilon, global_steps)
+            writer.add_scalar("Reward/step", reward, global_steps)
+            writer.add_scalar("CollectedFood/step", food_collected, global_steps)
             
             state = next_state  
             steps += 1
@@ -217,9 +221,8 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
 
             
             if done:
-                if i % 10 == 0:
-                    print("{2} Episode {0} finished after {1} steps"
-                          .format(i, steps, '\033[92m' if steps >= 195 else '\033[99m'))
+                print("{2} Episode {0} finished after {1} steps"
+                      .format(episode, steps, '\033[92m' if steps >= 195 else '\033[99m'))
                 episode_durations.append(steps)
                 break
 
@@ -237,11 +240,11 @@ def run_training(rob: IRobobo):
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()
 
-    memory_size = 200
-    num_episodes = 5
+    memory_size = 1000
+    num_episodes = 40
     learn_rate = 1e-4
     batch_size = 64
-    steps_per_episode = 400
+    steps_per_episode = 250
     
     path = "/root/results/"
     Q = QNetwork()
@@ -267,7 +270,7 @@ def run_training(rob: IRobobo):
                  learn_rate=learn_rate, 
                  num_episodes=num_episodes, 
                  steps_per_episode=steps_per_episode,
-                 discount_factor=0.99)
+                 discount_factor=0.95)
         
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()

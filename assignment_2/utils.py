@@ -29,16 +29,15 @@ HIGHER_THRESHOLD = 35 # for deepQ
 
 ######################## BEGINING Deep Q stuff #########################
 
-def get_epsilon(it):
+def get_epsilon(iters_left, total_iters=1000, epsilon_start=1.0, epsilon_final=0.05):
+    # k determines how fast we decay
+    decay_rate = 5.0  # Higher means faster decay
     
-    # YOUR CODE HERE
-    #raise NotImplementedError
-    if it >= 1000:
-        epsilon =  0.05
-    else:
-        epsilon = 1.0 -(it/1000)*(1.0-0.05)
+    fraction = iters_left / total_iters
+    epsilon = epsilon_final + (epsilon_start - epsilon_final) * np.exp(-decay_rate * (1 - fraction))
     
     return epsilon
+
 
 def translate_action(action_idx):
 

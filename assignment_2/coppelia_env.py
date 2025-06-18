@@ -92,13 +92,17 @@ class Coppelia_env(gym.Env):
         if self.deepQ:
             action = translate_action(action)
         TURN_360 = 4750
-        if action < 0:
-            turn_time = (TURN_360 / 360) * (-1) * action
-            self.rob.move_blocking(-20, 20, int(turn_time)) # for continuous action space turn
-        else:
-            turn_time = (TURN_360 / 360) * action
-            self.rob.move_blocking(20, -20, int(turn_time)) # for continuous action space turn
-        self.rob.move_blocking(100, 100, 250) # then move 
+        try:
+            if action < 0:
+                turn_time = (TURN_360 / 360) * (-1) * action
+                self.rob.move(-20, 20, int(turn_time)) # for continuous action space turn
+            else:
+                turn_time = (TURN_360 / 360) * action
+                self.rob.move(20, -20, int(turn_time)) # for continuous action space turn
+            self.rob.move(100, 100, 250) # then move
+        except Exception as e:
+            print(e)
+        #print(turn_time)
         
         next_state = get_state(self.rob)
 
@@ -135,6 +139,12 @@ class Coppelia_env(gym.Env):
 
     def get_robot_state(self):
         return get_state(self.rob)
+    
+    def get_food_collected(self):
+        if isinstance(self.rob, SimulationRobobo):
+            self.rob.sleep(.2)
+            return self.rob.get_nr_food_collected()
+
 
 def coppelia_main(rob):
     if isinstance(rob, SimulationRobobo):

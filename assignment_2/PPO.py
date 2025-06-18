@@ -24,8 +24,8 @@ from robobo_interface import (
 # Constants
 LOG_DIR = "/root/results/logs_ppo/"
 SAVE_DIR = "/root/results/model_ppo/"
-TIMESTEPS = 512 # Adjust based on your needs
-EVAL_FREQ = 64 # Evaluate every N timesteps
+TIMESTEPS = 10 # Adjust based on your needs
+EVAL_FREQ = 10 # Evaluate every N timesteps
 N_EVAL_EPISODES = 1
 
 class TensorboardCallback(BaseCallback):
@@ -82,9 +82,9 @@ def train_ppo(rob: IRobobo):
         verbose=2,
         tensorboard_log=LOG_DIR,
         learning_rate=3e-4,
-        n_steps=256,
-        batch_size=16,
-        n_epochs=2,
+        n_steps=4,
+        batch_size=4,
+        n_epochs=1,
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2,

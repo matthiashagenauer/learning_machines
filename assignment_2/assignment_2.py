@@ -10,6 +10,8 @@ import pickle # Import the pickle module
 #from .ClassicQ import *
 from .utils import *
 from .coppelia_env import *
+from .DeepQ import run_training
+from .PPO import train_ppo
 
 
 
@@ -28,4 +30,13 @@ from robobo_interface import (
     
 # Controller instance
 def controller(rob: IRobobo):
-    #coppelia_main()
+    while True:
+        choice = input("Choose mode [deepq / ppo]: ").strip().lower()
+        if choice == "deepq":
+            run_training(rob)
+            break
+        elif choice == "ppo":
+            train_ppo(rob)
+            break
+        else:
+            print("Invalid choice. Try again.")
