@@ -73,6 +73,7 @@ class Coppelia_env(gym.Env):
             self.rob.stop_simulation()
         if isinstance(self.rob, SimulationRobobo):
             self.rob.play_simulation()
+        self.rob.set_phone_tilt(105,100)
         #else:
         #    return np.array([0, 0, 0]).astype(np.float32), {} 
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
@@ -89,29 +90,36 @@ class Coppelia_env(gym.Env):
                 f"Received invalid action={action} which is not part of the action space"
             )
         """
+
+        #food_collected_before =(self.rob.get_nr_food_collected() if self.rob.get_nr_food_collected() is not None else 0)
+        
         if self.deepQ:
             action = translate_action(action)
         TURN_360 = 4750
         try:
-            if action < 0:
+            if action == 0:
+                pass
+            elif action < 0:
                 turn_time = (TURN_360 / 360) * (-1) * action
-                self.rob.move(-20, 20, int(turn_time)) # for continuous action space turn
+                self.rob.move_blocking(-20, 20, int(turn_time)) # for continuous action space turn
             else:
                 turn_time = (TURN_360 / 360) * action
-                self.rob.move(20, -20, int(turn_time)) # for continuous action space turn
-            self.rob.move(100, 100, 250) # then move
+                self.rob.move_blocking(20, -20, int(turn_time)) # for continuous action space turn
+            self.rob.move_blocking(105, 100, 250) # then move
+ 
         except Exception as e:
             print(e)
         #print(turn_time)
         
         next_state = get_state(self.rob)
-
-        terminated = self.rob.get_nr_food_collected() >= 7
+        #food_collected_after = self.rob.get_nr_food_collected()
+        #print(food_collected)
+        terminated = False #food_collected_after >= 7
         truncated = False  # we do not limit the number of steps here
 
         # Null reward everywhere except when reaching the goal (left of the grid)
-        reward = compute_reward(next_state=next_state, action=action)
-
+        #food_collected_step = (food_collected_after-food_collected_before)
+        reward = compute_reward(next_state=next_state, action=action, food_collected_step=0)
         # Optionally we can pass additional info, we are not using that for now
         info = {}
 

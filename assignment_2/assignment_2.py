@@ -10,8 +10,9 @@ import pickle # Import the pickle module
 #from .ClassicQ import *
 from .utils import *
 from .coppelia_env import *
-from .DeepQ import run_training
+from .DeepQ import run_training, apply_policy
 from .PPO import train_ppo
+
 
 
 
@@ -37,6 +38,9 @@ def controller(rob: IRobobo):
             break
         elif choice == "ppo":
             train_ppo(rob)
+            break
+        elif choice == "apply":
+            apply_policy(rob)
             break
         else:
             print("Invalid choice. Try again.")

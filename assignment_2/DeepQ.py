@@ -40,12 +40,15 @@ class QNetwork(nn.Module):
     def __init__(self, num_hidden=128):
         nn.Module.__init__(self)
         self.l1 = nn.Linear(4, num_hidden)
+        #self.l2 = nn.Linear(num_hidden, num_hidden)
         self.l2 = nn.Linear(num_hidden, 8)
 
     def forward(self, x):
         
         x = torch.relu(self.l1(x))  
         x = self.l2(x)  
+       # x = torch.relu(x)  
+        #x = self.l3(x)  
         return x
   
 
@@ -157,6 +160,7 @@ def train(Q, memory, optimizer, batch_size, discount_factor):
     state, action, reward, next_state, done = zip(*transitions)
     
     # convert to PyTorch and define types
+   
     state = torch.tensor(np.array(state), dtype=torch.float)
     action = torch.tensor(action, dtype=torch.int64)[:, None]
     next_state = torch.tensor(np.array(next_state), dtype=torch.float)
@@ -187,16 +191,14 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
     
     global_steps = 0  # Count the steps (do not reset at episode start, to compute epsilon)
     episode_durations = []  #
-    for episode in _tqdm(range(num_episodes)):
+    for epsiode in _tqdm(range(num_episodes)):
         env.reset()
         state = env.get_robot_state()
         
         steps = 0
-        for step in _tqdm(range(steps_per_episode)):
-            #if food_collected > 0:
-            #    print(f"Food collected: {food_collected}")
+        for step_per_episode in _tqdm(range(steps_per_episode)):
             
-            epsilon = get_epsilon(total_iters=num_episodes * steps_per_episode, iters_left=num_episodes * steps_per_episode - global_steps)
+            epsilon = get_epsilon(global_steps)
             policy.set_epsilon(epsilon) 
             action = policy.sample_action(state)
           
@@ -206,14 +208,11 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
             
             loss = train(Q, memory, optimizer, batch_size, discount_factor)  
 
-            food_collected = env.get_food_collected()
-
             if loss is not None:
                 writer.add_scalar("Loss/step", loss, global_steps)
 
             writer.add_scalar("Epsilon/step", epsilon, global_steps)
             writer.add_scalar("Reward/step", reward, global_steps)
-            writer.add_scalar("CollectedFood/step", food_collected, global_steps)
             
             state = next_state  
             steps += 1
@@ -221,10 +220,13 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
 
             
             if done:
+                
                 print("{2} Episode {0} finished after {1} steps"
-                      .format(episode, steps, '\033[92m' if steps >= 195 else '\033[99m'))
+                          .format(global_steps, steps, '\033[92m' if steps >= 195 else '\033[99m'))
                 episode_durations.append(steps)
                 break
+        val_food_collected = run_validation(Q, env)
+        writer.add_scalar("Reward/Validation/Episode", val_food_collected, epsiode)
 
     # Save the Q-network parameters
     torch.save(Q.state_dict(), '/root/results/q_network_params.pth')
@@ -240,8 +242,8 @@ def run_training(rob: IRobobo):
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()
 
-    memory_size = 1000
-    num_episodes = 40
+    memory_size = 300
+    num_episodes = 9
     learn_rate = 1e-4
     batch_size = 64
     steps_per_episode = 250
@@ -270,13 +272,24 @@ def run_training(rob: IRobobo):
                  learn_rate=learn_rate, 
                  num_episodes=num_episodes, 
                  steps_per_episode=steps_per_episode,
-                 discount_factor=0.95)
+                 discount_factor=0.99)
         
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()
 
+def run_validation(Q, env):
+    env.reset()
+    for i in range(200):
+        state = env.get_robot_state()
+        obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+        with torch.no_grad():
+            q_values = Q(obs) 
+            action = torch.argmax(q_values).item()
 
-"""
+        _ = env.step(action) 
+    return env.get_food_collected()
+
+
 def apply_policy(rob: IRobobo):
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()
@@ -291,15 +304,18 @@ def apply_policy(rob: IRobobo):
         print("Loaded existing Q-network parameters from", model_path)
     else:
         print("No existing Q-network parameters found. Initializing new model.")
+
+    env = Coppelia_env(rob, deepQ = True)
+    env.reset()
     for i in _tqdm(range(10000000)):
     #while True:
-        state = np.array(sensor_to_vec(get_sensor_data(rob)))
-        state = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+        state = env.get_robot_state()
+        obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
         with torch.no_grad():
-            q_values = Q(state) 
-            action = torch.argmax(q_values).item()  
-        state, reward = take_action(rob, action)
+            q_values = Q(obs) 
+            action = torch.argmax(q_values).item()
+
+        _ = env.step(action)
 
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()
-"""

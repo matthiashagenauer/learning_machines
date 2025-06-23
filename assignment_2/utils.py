@@ -24,7 +24,7 @@ from robobo_interface import (
 
 
 LOWER_THRESHOLD = 25 # for deepQ
-HIGHER_THRESHOLD = 35 # for deepQ
+HIGHER_THRESHOLD = 45 # for deepQ
 #THRESHOLD = 40
 
 ######################## BEGINING Deep Q stuff #########################
@@ -107,23 +107,39 @@ def sensor_to_vec(sensor_data, threshold=40):
     return result
 """
 
-def compute_reward(next_state, action, prev_state = None, ):
+def compute_reward(next_state, action,prev_state = None, food_collected_step=0):
     """
     Reward function for obstacle avoidance.
     More positive reward for keeping a safe distance,
     and negative if the robot is getting too close to obstacles.
     """
+    straight_bonus = 0
+    green_bonus = 0
+    spin_bonus = 0
+    proximity_reward = 0
+    """if next_state[-1] == 1:
+        green_bonus = 10
+        if next_state[1] == 1:
+            straight_bonus = 25
+            if action == 0:
+                straight_bonus += 100
+            proximity_reward = 50 # only front sensor
+        
 
-    if next_state[-1] == 1:
-        move_towards_target_reward = 1 if (action < 10 or action > -10) else 0
-        proximity_reward = next_state[1] # only front sensor
-        total_reward = move_towards_target_reward + proximity_reward
+        total_reward = proximity_reward + straight_bonus + green_bonus + spin_bonus
+
     else:
-        danger_penalty = np.sum(next_state[:-1] == 2) * -30
-        warning_penalty = np.sum(next_state == 1) * -3
-        not_looking_at_green_penalty = -10
-        total_reward = danger_penalty + warning_penalty + not_looking_at_green_penalty
+        """
+    danger_penalty = 0
+    #if next_state[-1] == 0:
+    #    danger_penalty = int(next_state[1] == 2) * -10
+        #warning_penalty = np.sum(next_state == 1) * -10
+        #not_looking_at_green_penalty = -25
+        #total_reward = danger_penalty 
     
+    collected_food_bonus = food_collected_step * 1000
+    step_punishment = 0
+    total_reward = collected_food_bonus + step_punishment + danger_penalty
     return float(total_reward)
 
 def get_sensor_data(rob: IRobobo):
