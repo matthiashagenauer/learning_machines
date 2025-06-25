@@ -84,10 +84,6 @@ class EpsilonGreedyPolicy(object):
     def sample_action(self, obs):
         """
         This method takes a state as input and returns an action sampled from this policy.  
-        Args:
-            obs: current state
-        Returns:
-            An action (int).
         """
         
         if random.random() < self.epsilon:
@@ -106,13 +102,6 @@ class EpsilonGreedyPolicy(object):
 def compute_q_vals(Q, states, actions):
     """
     This method returns Q values for given state action pairs.
-    
-    Args:
-        Q: Q-net
-        states: a tensor of states. Shape: batch_size x obs_dim
-        actions: a tensor of actions. Shape: Shape: batch_size x 1
-    Returns:
-        A torch tensor filled with Q values. Shape: batch_size x 1.
     """
 
     q_values = Q(states) 
@@ -124,19 +113,9 @@ def compute_targets(Q, rewards, next_states, dones, discount_factor):
     """
     This method returns targets (values towards which Q-values should move).
     
-    Args:
-        Q: Q-net
-        rewards: a tensor of rewards. Shape: Shape: batch_size x 1
-        next_states: a tensor of states. Shape: batch_size x obs_dim
-        dones: a tensor of boolean done flags (indicates if next_state is terminal) Shape: batch_size x 1
-        discount_factor: discount
-    Returns:
-        A torch tensor filled with target values. Shape: batch_size x 1.
     """
     
-    # YOUR CODE HERE
-    #raise NotImplementedError
-
+  
     dones = dones.to(torch.bool)  
 
     with torch.no_grad():
