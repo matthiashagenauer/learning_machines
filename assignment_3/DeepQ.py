@@ -184,7 +184,7 @@ def train(Q, memory, optimizer, batch_size, discount_factor):
 
 
 
-def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discount_factor, learn_rate, steps_per_episode):
+def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discount_factor, learn_rate, steps_per_episode, block_collection=True, add_random_perturbation=False):
     writer = SummaryWriter(log_dir="/root/results/tensorboard")  # TensorBoard writer
 
     optimizer = optim.Adam(Q.parameters(), learn_rate)
@@ -192,9 +192,10 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
     global_steps = 0  # Count the steps (do not reset at episode start, to compute epsilon)
     episode_durations = []  #
     for episode in _tqdm(range(num_episodes)):
-        env.reset()
-        env.teleport(episode, num_episodes)
-        state = env.get_robot_state()
+        env.reset(add_random_perturbation=add_random_perturbation)
+        if block_collection:
+            env.teleport(episode, num_episodes)
+        state = env.get_robot_state(block_collection)
         
         steps = 0
         for step_per_episode in _tqdm(range(steps_per_episode)):
@@ -244,10 +245,12 @@ def run_training(rob: IRobobo):
         rob.play_simulation()
 
     memory_size = 300
-    num_episodes = 23
+    num_episodes = 5
     learn_rate = 1e-4
     batch_size = 64
     steps_per_episode = 200
+    block_collection = False
+
     
     path = "/root/results/"
     Q = QNetwork()
@@ -273,7 +276,8 @@ def run_training(rob: IRobobo):
                  learn_rate=learn_rate, 
                  num_episodes=num_episodes, 
                  steps_per_episode=steps_per_episode,
-                 discount_factor=0.99)
+                 discount_factor=0.99,
+                 block_collection=block_collection)
         
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()

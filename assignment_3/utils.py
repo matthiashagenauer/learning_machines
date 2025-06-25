@@ -106,24 +106,36 @@ def sensor_to_vec(sensor_data, threshold=40):
     return result
 """
 
-def compute_reward(next_state, action, detect_red_middle, red_in_arms, prev_state = None):
+HIGHEST_PERCENTAGE = 0
+
+def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None, prev_state = None, block_collection=True, green_percentage=None):
     """
     Reward function for obstacle avoidance.
     More positive reward for keeping a safe distance,
     and negative if the robot is getting too close to obstacles.
     """
+    global HIGHEST_PERCENTAGE
     total_reward = 0
-    forward_bonus = 0
-    if detect_red_middle:
-        total_reward = 10
-        if action == 0:
-            forward_bonus = 50
+    if block_collection:
+        
+        forward_bonus = 0
+        if detect_red_middle:
+            total_reward = 10
+            if action == 0:
+                forward_bonus = 50
 
-    if red_in_arms:
-        total_reward = 1000
-    
+        if red_in_arms:
+            total_reward = 1000
+        total_reward = total_reward + forward_bonus
+    else:
+        if not red_in_arms:
+            total_reward = total_reward - 500
+        
+        if (green_percentage > HIGHEST_PERCENTAGE) and red_in_arms:
+            HIGHEST_PERCENTAGE = green_percentage
+            total_reward += 10
 
-    return float(total_reward + forward_bonus)
+    return float(total_reward)
 
 def get_sensor_data(rob: IRobobo):
     sensor_data = rob.read_irs()
@@ -176,22 +188,65 @@ def detect_green_blocks(image: np.ndarray) -> List[Tuple[int, int, int, int]]:
     
     return green_blocks
 
-def get_state(rob):
+def green_area_percentage(image: np.ndarray) -> float:
+    """
+    Calculate the percentage of the image occupied by green pixels.
+
+    Args:
+        image: Input image in BGR format (e.g., from `read_image_front`).
+
+    Returns:
+        A float representing the percentage of green area in the image.
+    """
+    # Convert BGR image to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define green color range in HSV
+    lower_green = np.array([35, 50, 50])
+    upper_green = np.array([85, 255, 255])
+
+    # Create a binary mask where green pixels are white
+    mask = cv2.inRange(hsv, lower_green, upper_green)
+
+    # Optional: Morphological operations to remove noise
+    kernel = np.ones((5, 5), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    # Count green pixels (non-zero values in mask)
+    green_pixels = cv2.countNonZero(mask)
+
+    # Total number of pixels in the image
+    total_pixels = image.shape[0] * image.shape[1]
+
+    # Calculate percentage
+    green_percentage = (green_pixels / total_pixels) * 100
+
+    return green_percentage
+
+def get_state(rob, block_collection=True):
     # Get sensor data and convert to vector
     sensor_array = sensor_to_vec(get_sensor_data(rob))
     red_in_arms = 0
     red_in_middle = 0
     # Detect green blocks - convert to boolean (1 if any blocks found, 0 otherwise)
-    if is_red_in_arms(rob.read_image_front()):
+    image = rob.read_image_front()
+
+    if is_red_in_arms(image):
         red_in_arms = 1
-    if is_red_in_middle(rob.read_image_front()):
-        red_in_middle = 1
-    
-    
-    # Combine into single state array
+
     next_state = np.append(sensor_array, red_in_arms)
-    next_state = np.append(next_state, red_in_middle)
-    
+
+    if block_collection:
+        if is_red_in_middle(image):
+            red_in_middle = 1
+        
+        # Combine into single state array
+        next_state = np.append(next_state, red_in_middle)
+    else:
+        green_area_percentage = green_area_percentage(image)
+
+        next_state = np.append(next_state, green_area_percentage)
+
     
     return next_state
     

@@ -63,7 +63,7 @@ class Coppelia_env(gym.Env):
             self.reset_orientation = self.rob.get_orientation()
 
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None, add_random_perturbation=False):
         """
         Important: the observation must be a numpy array
         :return: (np.array)
@@ -74,14 +74,21 @@ class Coppelia_env(gym.Env):
         if isinstance(self.rob, SimulationRobobo):
             self.rob.play_simulation()
         self.rob.set_phone_tilt(109,100)
-        self.rob.move(20, -20, 1000)
-        self.rob.move(100,100,2000)
+        if add_random_perturbation:
+            self.rob.move_blocking(60,60, 1000)
+            random_integers = np.random.randint(500, 1800, size=3)
+
+            self.rob.move_blocking(20, -20, random_integers[0])
+            self.rob.move_blocking(50, 50, random_integers[1])
+            self.rob.move_blocking(20, -20, random_integers[2])
+
+
         #else:
         #    return np.array([0, 0, 0]).astype(np.float32), {} 
         # here we convert to float32 to make it more general (in case we want to use continuous actions)
         return np.array([0, 0, 0, 0]).astype(np.int8), {}  # empty info dict
 
-    def step(self, action):
+    def step(self, action, block_collection = True):
         """
         if action == self.LEFT:
             self.agent_pos -= 1
@@ -117,10 +124,21 @@ class Coppelia_env(gym.Env):
         
         truncated = False  # we do not limit the number of steps here
 
-        detect_red_middle = is_red_in_middle(self.rob.read_image_front())
-        red_in_arms = is_red_in_arms(self.rob.read_image_front())
-        terminated = red_in_arms
-        reward = compute_reward(next_state=next_state, detect_red_middle=detect_red_middle, red_in_arms=red_in_arms, action=action)
+        image = self.rob.read_image_front()
+        red_in_arms = is_red_in_arms(image)
+        reward = 0
+
+        if block_collection:
+            detect_red_middle = is_red_in_middle(image)
+            terminated = red_in_arms
+            reward = compute_reward(next_state=next_state, detect_red_middle=detect_red_middle, red_in_arms=red_in_arms, action=action, block_collection=block_collection)
+        else:
+            terminated = False
+            green_percentage = green_area_percentage(image)
+            reward = compute_reward(next_state=next_state, red_in_arms=red_in_arms, action=action, block_collection=block_collection, green_percentage=green_percentage)
+
+
+        
         # Optionally we can pass additional info, we are not using that for now
         info = {}
 
@@ -153,8 +171,8 @@ class Coppelia_env(gym.Env):
         if isinstance(self.rob, SimulationRobobo):
             self.rob.stop_simulation()
 
-    def get_robot_state(self):
-        return get_state(self.rob)
+    def get_robot_state(self, block_collection):
+        return get_state(self.rob, block_collection=block_collection)
     
     def get_food_collected(self):
         if isinstance(self.rob, SimulationRobobo):
