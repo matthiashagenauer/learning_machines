@@ -299,17 +299,26 @@ def run_validation(Q, env):
     return env.get_food_collected()
 
 
-def apply_policy(rob: IRobobo):
+def apply_combined_policy(rob: IRobobo):
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()
     
     path = "/root/results/"
-    Q = QNetwork()
+    Q_find = QNetwork(input_dim=5)
+    Q_push = QNetwork(input_dim=6)
 
     # Load model parameters if available
-    model_path = f'{path}q_network_params.pth'
+    model_path = f'{path}q_network_params_find.pth'
     if os.path.exists(model_path):
-        Q.load_state_dict(torch.load(model_path))
+        Q_find.load_state_dict(torch.load(model_path))
+        print("Loaded existing Q-network parameters from", model_path)
+    else:
+        print("No existing Q-network parameters found. Initializing new model.")
+
+    # Load model parameters if available
+    model_path = f'{path}q_network_params_find_push.pth'
+    if os.path.exists(model_path):
+        Q_push.load_state_dict(torch.load(model_path))
         print("Loaded existing Q-network parameters from", model_path)
     else:
         print("No existing Q-network parameters found. Initializing new model.")
@@ -317,14 +326,76 @@ def apply_policy(rob: IRobobo):
     env = Coppelia_env(rob, deepQ = True)
     env.reset()
     for i in _tqdm(range(10000000)):
-    #while True:
-        state = env.get_robot_state()
-        obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
-        with torch.no_grad():
-            q_values = Q(obs) 
-            action = torch.argmax(q_values).item()
+        image = rob.read_image_front()
+        red_in_arms = is_red_in_arms(image)
+        if not red_in_arms:
+            state = env.get_robot_state(block_collection=True)
+            obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+            with torch.no_grad():
+                q_values = Q_find(obs) 
+                action = torch.argmax(q_values).item()
+        else:
+            state = env.get_robot_state(block_collection=False)
+            obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+            with torch.no_grad():
+                q_values = Q_push(obs) 
+                action = torch.argmax(q_values).item()
 
-        _ = env.step(action)
+        _ = env.apply_action(action)
+
+    if isinstance(rob, SimulationRobobo):
+        rob.stop_simulation()
+
+
+def apply_policy(rob: IRobobo, find=True, simulation=True):
+    if isinstance(rob, SimulationRobobo):
+        rob.play_simulation()
+    
+    path = "/root/results/"
+
+    if find:
+        Q_find = QNetwork(input_dim=5)
+        # Load model parameters if available
+        model_path = f'{path}q_network_params_find.pth'
+        if os.path.exists(model_path):
+            Q_find.load_state_dict(torch.load(model_path))
+            print("Loaded existing Q-network parameters from", model_path)
+        else:
+            print("No existing Q-network parameters found. Initializing new model.")
+
+        env = Coppelia_env(rob, deepQ = True)
+        env.reset()
+        for i in _tqdm(range(10000000)):
+            state = env.get_robot_state(block_collection=True)
+            obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+            with torch.no_grad():
+                q_values = Q_find(obs) 
+                action = torch.argmax(q_values).item()
+
+            _ = env.apply_action(action)
+
+
+    else:
+        Q_push = QNetwork(input_dim=6)
+
+        # Load model parameters if available
+        model_path = f'{path}q_network_params_find_push.pth'
+        if os.path.exists(model_path):
+            Q_push.load_state_dict(torch.load(model_path))
+            print("Loaded existing Q-network parameters from", model_path)
+        else:
+            print("No existing Q-network parameters found. Initializing new model.")
+
+        env = Coppelia_env(rob, deepQ = True)
+        env.reset(add_random_perturbation=simulation)
+        for i in _tqdm(range(10000000)):
+            state = env.get_robot_state(block_collection=False)
+            obs = torch.tensor(state, dtype=torch.float32).unsqueeze(0)  
+            with torch.no_grad():
+                q_values = Q_push(obs) 
+                action = torch.argmax(q_values).item()
+
+            _ = env.apply_action(action)
 
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()

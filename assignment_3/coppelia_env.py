@@ -201,6 +201,27 @@ class Coppelia_env(gym.Env):
         dz = base_position.z - robot_position.z
         
         return np.sqrt(dx**2 + dy**2 + dz**2)
+    
+    def apply_action(self, action):
+        
+        if self.deepQ:
+            action = translate_action(action)
+        TURN_360 = 4750
+        try:
+            if action == 0:
+                self.rob.move_blocking(105, 100, 250) # then move
+            elif action < 0:
+                turn_time = (TURN_360 / 360) * (-1) * action
+                self.rob.move_blocking(-20, 20, int(turn_time)) # for continuous action space turn
+            else:
+                turn_time = (TURN_360 / 360) * action
+                self.rob.move_blocking(20, -20, int(turn_time)) # for continuous action space turn
+            
+        except Exception as e:
+            print(e)
+            return False
+            
+        return True
 
 
 def _teleport_robot_to_grab_position(self):
