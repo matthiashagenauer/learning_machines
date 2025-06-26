@@ -196,6 +196,7 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
         if block_collection:
             env.teleport(episode, num_episodes)
         state = env.get_robot_state(block_collection)
+        #print(f"State in epsisodes: {state.size}")
         
         steps = 0
         for step_per_episode in _tqdm(range(steps_per_episode)):
@@ -249,7 +250,7 @@ def run_training(rob: IRobobo):
     learn_rate = 1e-4
     batch_size = 64
     layer_size = 64
-    input_dim = 6
+    input_dim = 5 # make 5 if u want to train block collection
     steps_per_episode = 150
     block_collection = False
     add_random_perturbation = True

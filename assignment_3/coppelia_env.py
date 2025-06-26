@@ -117,7 +117,9 @@ class Coppelia_env(gym.Env):
         except Exception as e:
             print(e)
         
+        #print(f"Block Collection in step: {block_collection}")
         next_state = get_state(self.rob, block_collection=block_collection)
+        #print(f"State in step: {next_state.size}")
         #food_collected_after = self.rob.get_nr_food_collected()
         #print(food_collected)
         
@@ -132,10 +134,14 @@ class Coppelia_env(gym.Env):
 
         if block_collection:
             detect_red_middle = is_red_in_middle(image)
+            red_in_arms = is_red_in_arms(image)
+            red_in_left = is_red_in_left(image)
+            red_in_right = is_red_in_right(image)
             terminated = red_in_arms
-            reward = compute_reward(next_state=next_state, detect_red_middle=detect_red_middle, red_in_arms=red_in_arms, action=action, block_collection=block_collection)
+
+            reward = compute_reward(next_state=next_state, detect_red_middle=detect_red_middle, red_in_arms=red_in_arms, red_in_left=red_in_left,red_in_right = red_in_right, action=action, block_collection=block_collection)
         else:
-            terminated = (not red_in_arms) or (distance_to_base <= 0 and red_in_arms)
+            terminated = (not red_in_arms)
             reward = compute_reward(next_state=next_state, red_in_arms=red_in_arms, action=action, block_collection=block_collection, distance_to_base=distance_to_base)
 
 
@@ -154,8 +160,11 @@ class Coppelia_env(gym.Env):
     def teleport(self, episode, episodes):
         data = [[Orientation(yaw=-1.5680605471049571, pitch=0.8859427569251203, roll=-1.5728157278055066), Position(x=-2.954414489149553, y=-0.010197066939466556, z=0.039775510502622735)],[Orientation(yaw=1.549657091374225, pitch=1.4985915499913811, roll=1.5919674546103197), Position(x=-3.1124296739182897, y=-0.006067762322869174, z=0.03977213855380894)], [Orientation(yaw=1.569279832184099, pitch=-0.1227015533179101, roll=1.5706981205135484), Position(x=-2.5418040956824326, y=0.6303631796844946, z=0.03978579702412296)], [Orientation(yaw=1.5558650304737902, pitch=-1.461930644692143, roll=1.556045822091844), Position(x=-2.4990833978280547, y=0.5988361667980143, z=0.039785167544283)], [Orientation(yaw=1.5564409564033026, pitch=1.4619636052886722, roll=1.5851506925340424), Position(x=-2.588058613029801, y=0.5988525928622892, z=0.03978474608918915)],  [Orientation(yaw=1.5692786375385732, pitch=-0.007752696926199876, roll=1.570880007063897), Position(x=-2.683789766023037, y=1.0682724844481044, z=0.03978536796050946)], [Orientation(yaw=1.5640246136389826, pitch=-1.3451782079478403, roll=1.564281207698291), Position(x=-2.636619905125915, y=1.037013124945882, z=0.03978499886255747)], [Orientation(yaw=1.567962105254265, pitch=0.9938714606594542, roll=1.573264402234514), Position(x=-2.719316190883052, y=1.051396649612378, z=0.03978509604719551)], [Orientation(yaw=1.5691379058064465, pitch=0.4321565045912905, roll=1.5715761080079473), Position(x=-3.399299759906827, y=1.4853870538027008, z=0.039785382163896724)], [Orientation(yaw=-1.569104046571536, pitch=0.47090024488326543, roll=-1.5714777874037436), Position(x=-3.7954756945000945, y=0.7411902518594959, z=0.039784831848629104)], [Orientation(yaw=1.5692731302544858, pitch=-0.1589992764718999, roll=1.5706400056494119), Position(x=-3.845611377487542, y=0.04245635634794696, z=0.039785872833502336)]]
         n_pos = len(data)
-        if episode + 1 % episodes/n_pos == 0: 
-            self.rob.set_position(data[i][1], data[i][0])
+        episodes_per_chunk = episodes/n_pos
+        i = episode / episodes_per_chunk 
+        if i != 0:
+            self.rob.set_position(data[int(i-1)][1], data[int(i-1)][0])
+        
         
 
     def render(self):

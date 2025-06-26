@@ -86,8 +86,8 @@ def sensor_to_vec(sensor_data):
     sensor_data = np.asarray(sensor_data)
 
     result = np.select(
-        [sensor_data < LOWER_THRESHOLD, (sensor_data >= LOWER_THRESHOLD) & (sensor_data < HIGHER_THRESHOLD), sensor_data >= HIGHER_THRESHOLD],
-        [0, 1, 2]
+        [sensor_data < HIGHER_THRESHOLD, sensor_data >= HIGHER_THRESHOLD],
+        [0, 2]
     )
 
     #print("Sensor Data:")
@@ -108,7 +108,8 @@ def sensor_to_vec(sensor_data, threshold=40):
 
 SMALLEST_DISTANCE = np.inf
 
-def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None, prev_state = None, block_collection=True, distance_to_base=None):
+
+def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None, red_in_left = None,red_in_right = None, prev_state = None, block_collection=True, distance_to_base=None):
     """
     Reward function for obstacle avoidance.
     More positive reward for keeping a safe distance,
@@ -119,14 +120,24 @@ def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None,
     if block_collection:
         
         forward_bonus = 0
+        step_penalty = -1
+
         if detect_red_middle:
             total_reward = 10
             if action == 0:
                 forward_bonus = 50
+            step_penalty = 0
 
         if red_in_arms:
+            step_penalty = 0
             total_reward = 1000
-        total_reward = total_reward + forward_bonus
+
+        if red_in_left:
+            step_penalty = -0.5
+
+        if red_in_right:
+            step_penalty = -0.5
+        total_reward = total_reward + forward_bonus + step_penalty
     else:
         if not red_in_arms:
             total_reward = total_reward - 500
@@ -224,11 +235,13 @@ def green_area_percentage(image: np.ndarray) -> float:
     return green_percentage
 
 
-def get_state(rob, block_collection=True):
+def get_state(rob, block_collection):
     # Get sensor data and convert to vector
     sensor_array = sensor_to_vec(get_sensor_data(rob))
     red_in_arms = 0
     red_in_middle = 0
+    red_in_left = 0
+    red_in_right = 0 
     # Detect green blocks - convert to boolean (1 if any blocks found, 0 otherwise)
     image = rob.read_image_front()
 
@@ -240,15 +253,22 @@ def get_state(rob, block_collection=True):
     if block_collection:
         if is_red_in_middle(image):
             red_in_middle = 1
+        if is_red_in_left(image):
+            red_in_left= 1
+        if is_red_in_right(image):
+            red_in_right= 1
         
         # Combine into single state array
         next_state = np.append(next_state, red_in_middle)
+        next_state = np.append(next_state, red_in_left)
+        next_state = np.append(next_state, red_in_right)
     else:
         green_percentage = green_area_percentage(image)
         green_blocks_present = detect_green_blocks(image)
 
         next_state = np.append(next_state, green_percentage)
         next_state = np.append(next_state, green_blocks_present)
+        #print(f"Next state in get state: {next_state.size}")
 
     
     return next_state
@@ -301,6 +321,98 @@ def is_red_in_lower_middle(image: np.ndarray, save_prefix: str = "output") -> bo
     # Check if any red pixels are found
     return np.any(mask > 0)
 
+'''
+def is_red_in_middle(image: np.ndarray) -> bool:
+    """
+    Detect if there is any red in the [3/9, 4/9] horizontal band (middle slice) of the image.
+
+    Args:
+        image: Input image in BGR format.
+
+    Returns:
+        True if red is detected in the specified middle band, False otherwise.
+    """
+    # Convert BGR to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    time_stamp = time.time()
+    # Define red color range in HSV (two parts due to hue wrap-around)
+    lower_red1 = np.array([0, 70, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 70, 50])
+    upper_red2 = np.array([180, 255, 255])
+
+    # Get image dimensions
+    h, w, _ = image.shape
+
+    # Define horizontal band
+    start_x = int(w *10/ 21)
+    end_x = int(w * 11 / 21)
+
+    # Use full vertical range
+    start_y = 0
+    end_y = h
+
+    # Crop the region of interest
+    roi = hsv[start_y:end_y, start_x:end_x]
+
+    # Create masks for red color
+    mask1 = cv2.inRange(roi, lower_red1, upper_red1)
+    mask2 = cv2.inRange(roi, lower_red2, upper_red2)
+    mask = cv2.bitwise_or(mask1, mask2)
+
+    #cv2.imwrite(f"root/results/{time_stamp}_processed_mask.jpg", mask)
+
+    # Return True if any red pixel is found
+    return np.any(mask > 0)
+'''
+
+
+def is_red_in_arms(image: np.ndarray) -> bool:
+    """
+    Detect if there is any red in the bottom third of the [3/9, 4/9] horizontal slice of the image.
+
+    Args:
+        image: Input image in BGR format.
+
+    Returns:
+        True if red is detected in the specified bottom-middle region, False otherwise.
+    """
+    # Convert BGR to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define red color range in HSV (two parts due to hue wrap-around)
+    lower_red1 = np.array([0, 70, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 70, 50])
+    upper_red2 = np.array([180, 255, 255])
+
+    # Get image dimensions
+    h, w, _ = image.shape
+
+    # Define horizontal band [3/9, 4/9]
+    start_x = int(w * 10 / 21)
+    end_x = int(w * 11 / 21)
+
+    # Define bottom third vertically
+    start_y = int(h * (512-50)/ 512)
+    end_y = h
+
+    # Crop the region of interest
+    roi = hsv[start_y:end_y, start_x:end_x]
+
+    # Create masks for red color
+    mask1 = cv2.inRange(roi, lower_red1, upper_red1)
+    mask2 = cv2.inRange(roi, lower_red2, upper_red2)
+    red_mask = cv2.bitwise_or(mask1, mask2)
+
+    time_stamp = time.time()
+   #cv2.imwrite(f"/root/results/{time_stamp}_processed_mask.jpg", red_mask)
+   # cv2.imwrite(f"/root/results/{time_stamp}_original.jpg", image)
+
+    # Return True if any red pixel is found
+    return np.any(red_mask > 0)
+
+
 def is_red_in_middle(image: np.ndarray) -> bool:
     """
     Detect if there is any red in the [3/9, 4/9] horizontal band (middle slice) of the image.
@@ -345,7 +457,7 @@ def is_red_in_middle(image: np.ndarray) -> bool:
     return np.any(mask > 0)
 
 
-def is_red_in_arms(image: np.ndarray) -> bool:
+def is_red_in_left(image: np.ndarray) -> bool:
     """
     Detect if there is any red in the bottom third of the [3/9, 4/9] horizontal slice of the image.
 
@@ -368,11 +480,56 @@ def is_red_in_arms(image: np.ndarray) -> bool:
     h, w, _ = image.shape
 
     # Define horizontal band [3/9, 4/9]
-    start_x = int(w * 10 / 21)
-    end_x = int(w * 11 / 21)
+    start_x = int(w * 5 / 21)
+    end_x = int(w * 10 / 21)
 
     # Define bottom third vertically
-    start_y = int(h * (512-50)/ 512)
+    start_y = 0
+    end_y = h
+
+    # Crop the region of interest
+    roi = hsv[start_y:end_y, start_x:end_x]
+
+    # Create masks for red color
+    mask1 = cv2.inRange(roi, lower_red1, upper_red1)
+    mask2 = cv2.inRange(roi, lower_red2, upper_red2)
+    red_mask = cv2.bitwise_or(mask1, mask2)
+
+    time_stamp = time.time()
+   #cv2.imwrite(f"/root/results/{time_stamp}_processed_mask.jpg", red_mask)
+   # cv2.imwrite(f"/root/results/{time_stamp}_original.jpg", image)
+
+    # Return True if any red pixel is found
+    return np.any(red_mask > 0)
+
+def is_red_in_right(image: np.ndarray) -> bool:
+    """
+    Detect if there is any red in the bottom third of the [3/9, 4/9] horizontal slice of the image.
+
+    Args:
+        image: Input image in BGR format.
+
+    Returns:
+        True if red is detected in the specified bottom-middle region, False otherwise.
+    """
+    # Convert BGR to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define red color range in HSV (two parts due to hue wrap-around)
+    lower_red1 = np.array([0, 70, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 70, 50])
+    upper_red2 = np.array([180, 255, 255])
+
+    # Get image dimensions
+    h, w, _ = image.shape
+
+    # Define horizontal band [3/9, 4/9]
+    start_x = int(w * 11 / 21)
+    end_x = int(w * 16 / 21)
+
+    # Define bottom third vertically
+    start_y = 0
     end_y = h
 
     # Crop the region of interest
