@@ -80,7 +80,7 @@ class Coppelia_env(gym.Env):
 
             self.rob.move_blocking(20, -20, random_integers[0])
             self.rob.move_blocking(50, 50, random_integers[1])
-            self.rob.move_blocking(20, -20, random_integers[2])
+            self.rob.move_blocking(-20, 20, random_integers[2])
 
 
         #else:

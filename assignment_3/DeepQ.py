@@ -250,6 +250,7 @@ def run_training(rob: IRobobo):
     batch_size = 64
     steps_per_episode = 200
     block_collection = False
+    add_random_perturbation = True
 
     
     path = "/root/results/"
@@ -277,7 +278,8 @@ def run_training(rob: IRobobo):
                  num_episodes=num_episodes, 
                  steps_per_episode=steps_per_episode,
                  discount_factor=0.99,
-                 block_collection=block_collection)
+                 block_collection=block_collection, 
+                 add_random_perturbation=add_random_perturbation)
         
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()
