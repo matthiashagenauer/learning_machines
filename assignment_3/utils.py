@@ -106,15 +106,15 @@ def sensor_to_vec(sensor_data, threshold=40):
     return result
 """
 
-HIGHEST_PERCENTAGE = 0
+SMALLEST_DISTANCE = np.inf
 
-def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None, prev_state = None, block_collection=True, green_percentage=None):
+def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None, prev_state = None, block_collection=True, distance_to_base=None):
     """
     Reward function for obstacle avoidance.
     More positive reward for keeping a safe distance,
     and negative if the robot is getting too close to obstacles.
     """
-    global HIGHEST_PERCENTAGE
+    global SMALLEST_DISTANCE
     total_reward = 0
     if block_collection:
         
@@ -131,8 +131,8 @@ def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None,
         if not red_in_arms:
             total_reward = total_reward - 500
         
-        if (green_percentage > HIGHEST_PERCENTAGE) and red_in_arms:
-            HIGHEST_PERCENTAGE = green_percentage
+        if (distance_to_base > SMALLEST_DISTANCE) and red_in_arms:
+            SMALLEST_DISTANCE = distance_to_base
             total_reward += 10
 
     return float(total_reward)
@@ -223,6 +223,7 @@ def green_area_percentage(image: np.ndarray) -> float:
 
     return green_percentage
 
+
 def get_state(rob, block_collection=True):
     # Get sensor data and convert to vector
     sensor_array = sensor_to_vec(get_sensor_data(rob))
@@ -243,9 +244,9 @@ def get_state(rob, block_collection=True):
         # Combine into single state array
         next_state = np.append(next_state, red_in_middle)
     else:
-        green_area_percentage = green_area_percentage(image)
+        green_percentage = green_area_percentage(image)
 
-        next_state = np.append(next_state, green_area_percentage)
+        next_state = np.append(next_state, green_percentage)
 
     
     return next_state

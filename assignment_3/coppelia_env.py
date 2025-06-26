@@ -2,7 +2,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from .utils import *
-from stable_baselines3.common.env_checker import check_env
+#from stable_baselines3.common.env_checker import check_env
 
 
 from data_files import FIGURES_DIR
@@ -117,7 +117,6 @@ class Coppelia_env(gym.Env):
         except Exception as e:
             print(e)
         
-        
         next_state = get_state(self.rob)
         #food_collected_after = self.rob.get_nr_food_collected()
         #print(food_collected)
@@ -125,6 +124,9 @@ class Coppelia_env(gym.Env):
         truncated = False  # we do not limit the number of steps here
 
         image = self.rob.read_image_front()
+        
+        distance_to_base = self.get_distance_to_base()
+
         red_in_arms = is_red_in_arms(image)
         reward = 0
 
@@ -134,8 +136,7 @@ class Coppelia_env(gym.Env):
             reward = compute_reward(next_state=next_state, detect_red_middle=detect_red_middle, red_in_arms=red_in_arms, action=action, block_collection=block_collection)
         else:
             terminated = False
-            green_percentage = green_area_percentage(image)
-            reward = compute_reward(next_state=next_state, red_in_arms=red_in_arms, action=action, block_collection=block_collection, green_percentage=green_percentage)
+            reward = compute_reward(next_state=next_state, red_in_arms=red_in_arms, action=action, block_collection=block_collection, distance_to_base=distance_to_base)
 
 
         
@@ -190,6 +191,17 @@ class Coppelia_env(gym.Env):
         camera_img = self.get_camera_image()
 
         return {"proximity": sensor_data,"camera": camera_img}
+    
+    def get_distance_to_base(self):
+        base_position = self.rob.get_base_position()
+        robot_position = self.rob.get_position()
+
+        dx = base_position.x - robot_position.x
+        dy = base_position.y - robot_position.y
+        dz = base_position.z - robot_position.z
+        
+        return np.sqrt(dx**2 + dy**2 + dz**2)
+
 
 def _teleport_robot_to_grab_position(self):
     """
@@ -204,6 +216,6 @@ def coppelia_main(rob):
         rob.play_simulation()
     env = Coppelia_env(rob)
     # If the environment don't follow the interface, an error will be thrown
-    check_env(env, warn=True)
+    #check_env(env, warn=True)
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()

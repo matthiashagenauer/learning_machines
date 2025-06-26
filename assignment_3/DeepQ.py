@@ -224,7 +224,7 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
             if done:
                 
                 print("{2} Episode {0} finished after {1} steps"
-                          .format(global_steps, steps, '\033[92m' if steps >= 195 else '\033[99m'))
+                          .format(episode, steps, '\033[92m' if steps >= 195 else '\033[99m'))
                 episode_durations.append(steps)
                 break
         #val_food_collected = run_validation(Q, env)
