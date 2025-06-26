@@ -131,9 +131,9 @@ def compute_reward(next_state, action, detect_red_middle=None, red_in_arms=None,
         if not red_in_arms:
             total_reward = total_reward - 500
         
-        if (distance_to_base > SMALLEST_DISTANCE) and red_in_arms:
+        if (distance_to_base < SMALLEST_DISTANCE) and red_in_arms:
             SMALLEST_DISTANCE = distance_to_base
-            total_reward += 10
+            total_reward += 50
 
     return float(total_reward)
 
@@ -178,7 +178,7 @@ def detect_green_blocks(image: np.ndarray) -> List[Tuple[int, int, int, int]]:
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     # Filter small contours and return bounding boxes
-    min_area = 100  # Minimum area to consider as a block (adjust as needed)
+    min_area = 50  # Minimum area to consider as a block (adjust as needed)
     green_blocks = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
@@ -245,8 +245,10 @@ def get_state(rob, block_collection=True):
         next_state = np.append(next_state, red_in_middle)
     else:
         green_percentage = green_area_percentage(image)
+        green_blocks_present = detect_green_blocks(image)
 
         next_state = np.append(next_state, green_percentage)
+        next_state = np.append(next_state, green_blocks_present)
 
     
     return next_state

@@ -135,7 +135,7 @@ class Coppelia_env(gym.Env):
             terminated = red_in_arms
             reward = compute_reward(next_state=next_state, detect_red_middle=detect_red_middle, red_in_arms=red_in_arms, action=action, block_collection=block_collection)
         else:
-            terminated = False
+            terminated = (not red_in_arms) or (distance_to_base <= 0 and red_in_arms)
             reward = compute_reward(next_state=next_state, red_in_arms=red_in_arms, action=action, block_collection=block_collection, distance_to_base=distance_to_base)
 
 

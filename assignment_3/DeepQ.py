@@ -37,9 +37,9 @@ class QNetwork(nn.Module):
     Very simple NN
     """
     
-    def __init__(self, num_hidden=64):
+    def __init__(self, input_dim = 6, num_hidden=64):
         nn.Module.__init__(self)
-        self.l1 = nn.Linear(5, num_hidden)
+        self.l1 = nn.Linear(input_dim, num_hidden)
         #self.l2 = nn.Linear(num_hidden, num_hidden)
         self.l2 = nn.Linear(num_hidden, 7)
 
@@ -200,8 +200,8 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
         steps = 0
         for step_per_episode in _tqdm(range(steps_per_episode)):
             
-            epsilon = get_epsilon(global_steps)
-            policy.set_epsilon(1 - epsilon) 
+            epsilon = 1 - get_epsilon(global_steps)
+            policy.set_epsilon(epsilon) 
             action = policy.sample_action(state)
           
             next_state, reward, done, _, _ = env.step(action, block_collection) 
@@ -249,13 +249,14 @@ def run_training(rob: IRobobo):
     learn_rate = 1e-4
     batch_size = 64
     layer_size = 64
+    input_dim = 6
     steps_per_episode = 150
     block_collection = False
     add_random_perturbation = True
 
     
     path = "/root/results/"
-    Q = QNetwork(layer_size)
+    Q = QNetwork(input_dim = input_dim, num_hidden=layer_size)
 
     # Load model parameters if available
     model_path = f'{path}q_network_params.pth'
