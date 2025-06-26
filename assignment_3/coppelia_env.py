@@ -117,7 +117,7 @@ class Coppelia_env(gym.Env):
         except Exception as e:
             print(e)
         
-        next_state = get_state(self.rob)
+        next_state = get_state(self.rob, block_collection=block_collection)
         #food_collected_after = self.rob.get_nr_food_collected()
         #print(food_collected)
         

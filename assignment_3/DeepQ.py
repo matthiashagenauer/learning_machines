@@ -201,10 +201,10 @@ def run_episodes(train, Q, policy, memory, env, num_episodes, batch_size, discou
         for step_per_episode in _tqdm(range(steps_per_episode)):
             
             epsilon = get_epsilon(global_steps)
-            policy.set_epsilon(epsilon) 
+            policy.set_epsilon(1 - epsilon) 
             action = policy.sample_action(state)
           
-            next_state, reward, done, _, _ = env.step(action) 
+            next_state, reward, done, _, _ = env.step(action, block_collection) 
             
             memory.push((state, action, reward, next_state, done))  
             
@@ -245,16 +245,17 @@ def run_training(rob: IRobobo):
         rob.play_simulation()
 
     memory_size = 300
-    num_episodes = 5
+    num_episodes = 10
     learn_rate = 1e-4
     batch_size = 64
-    steps_per_episode = 200
+    layer_size = 64
+    steps_per_episode = 150
     block_collection = False
     add_random_perturbation = True
 
     
     path = "/root/results/"
-    Q = QNetwork()
+    Q = QNetwork(layer_size)
 
     # Load model parameters if available
     model_path = f'{path}q_network_params.pth'
